@@ -1,8 +1,9 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L10 · Implementing a Durable Idempotent Operation</title><link rel="stylesheet" href="../assets/site.css"></head>
-<body><main class="page reference-page">
-  <header class="course-bar"><strong>Backend Component Labs</strong><nav><a href="../index.html">All labs</a><a href="../index.html#workflow">Workflow</a><a href="https://github.com/rafaelromao/labs">Repository</a></nav></header>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L10 · Implementing a Durable Idempotent Operation · Rafael Romão's Coding Labs</title><script>try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}</script><link rel="stylesheet" href="../assets/site.css"></head>
+<body>
+<header class="site-bar"><div class="site-bar-inner"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">RR</span><span class="brand-name">Rafael Romão's Coding Labs</span></a><nav class="site-nav" aria-label="Site"><a href="../index.html#labs">Labs</a><a href="../index.html#start">Starter projects</a><a href="https://github.com/rafaelromao/labs">GitHub</a><button class="theme-toggle" type="button" aria-label="Toggle colour theme"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></nav></div></header>
+<main class="page"><article>
   <p class="eyebrow">Lab L10 · Java + Go</p><h1>Implementing a durable idempotent operation</h1>
   <p class="lede">Build a retry-safe <code>add(scope, key, amount)</code> on a counter stored in SQLite. The first call with a given (scope, key) increments the counter <em>and</em> stores the resulting value as that request's response, in the same transaction. A repeat with the same key and amount returns the stored response without incrementing again; the same key with a different amount is rejected as a conflict.</p>
 
@@ -55,5 +56,8 @@ requests(scope <span class="hljs-keyword">TEXT</span>, key <span class="hljs-key
   <section><h2>Related</h2>
     <ul><li><a href="l04-singleflight.html">Implementing Per-Key Request Coalescing</a>, because sharing in-flight work is not restart-safe deduplication.</li></ul>
   </section>
-  <p class="lab-nav"><a href="l09-resilience.html">← L09 a Retry and Circuit Breaker Executor</a><a href="l11-outbox.html">L11 an Outbox and Idempotent Consumer →</a></p>
-</main><script src="../assets/vendor/highlight-11.12.0.min.js"></script><script src="../assets/lab-code.js"></script></body></html>
+  <nav class="lab-nav" aria-label="Previous and next lab"><a href="l09-resilience.html">← L09 Retry and Circuit Breaker Executor</a><a href="l11-outbox.html">L11 Outbox and Idempotent Consumer →</a></nav>
+</article></main>
+<footer class="site-footer">Rafael Romão's Coding Labs · <a href="https://github.com/rafaelromao/labs">Source on GitHub</a> · <a href="https://github.com/rafaelromao/labs/tree/main/java">Java starter</a> · <a href="https://github.com/rafaelromao/labs/tree/main/go">Go starter</a></footer>
+<script src="../assets/vendor/highlight-11.12.0.min.js"></script><script src="../assets/lab-code.js"></script><script src="../assets/theme.js"></script>
+</body></html>

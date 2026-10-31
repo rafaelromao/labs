@@ -1,4 +1,4 @@
-# Backend Component Labs
+# Rafael Romão's Coding Labs
 
 Twenty-two small, production-style backend components to implement yourself, each with a written
 contract, a diagram, a starter stub in **Java** and in **Go**, a test suite that checks the contract,
