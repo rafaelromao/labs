@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "labs": [
+    {
+      "id": "L01",
+      "slug": "blockingqueue",
+      "title": "Implementing a Bounded Blocking Queue",
+      "page": "site/lab/l01-blockingqueue.html",
+      "java": "java/src/main/java/labs/blockingqueue",
+      "go": "go/blockingqueue"
+    },
+    {
+      "id": "L02",
+      "slug": "workerpool",
+      "title": "Implementing a Bounded Worker Pool",
+      "page": "site/lab/l02-workerpool.html",
+      "java": "java/src/main/java/labs/workerpool",
+      "go": "go/workerpool"
+    },
+    {
+      "id": "L03",
+      "slug": "fanout",
+      "title": "Implementing a Concurrent Request Aggregator",
+      "page": "site/lab/l03-fanout.html",
+      "java": "java/src/main/java/labs/fanout",
+      "go": "go/fanout"
+    },
+    {
+      "id": "L04",
+      "slug": "singleflight",
+      "title": "Implementing Per-Key Request Coalescing",
+      "page": "site/lab/l04-singleflight.html",
+      "java": "java/src/main/java/labs/singleflight",
+      "go": "go/singleflight"
+    },
+    {
+      "id": "L05",
+      "slug": "ttlcache",
+      "title": "Implementing a Bounded TTL Cache",
+      "page": "site/lab/l05-ttlcache.html",
+      "java": "java/src/main/java/labs/ttlcache",
+      "go": "go/ttlcache"
+    },
+    {
+      "id": "L06",
+      "slug": "lfucache",
+      "title": "Implementing an LFU Cache",
+      "page": "site/lab/l06-lfucache.html",
+      "java": "java/src/main/java/labs/lfucache",
+      "go": "go/lfucache"
+    },
+    {
+      "id": "L07",
+      "slug": "ratelimiter",
+      "title": "Implementing a Per-Client Rate Limiter",
+      "page": "site/lab/l07-ratelimiter.html",
+      "java": "java/src/main/java/labs/ratelimiter",
+      "go": "go/ratelimiter"
+    },
+    {
+      "id": "L08",
+      "slug": "scheduler",
+      "title": "Implementing a Delayed Task Scheduler",
+      "page": "site/lab/l08-scheduler.html",
+      "java": "java/src/main/java/labs/scheduler",
+      "go": "go/scheduler"
+    },
+    {
+      "id": "L09",
+      "slug": "resilience",
+      "title": "Implementing a Retry and Circuit Breaker Executor",
+      "page": "site/lab/l09-resilience.html",
+      "java": "java/src/main/java/labs/resilience",
+      "go": "go/resilience"
+    },
+    {
+      "id": "L10",
+      "slug": "idempotency",
+      "title": "Implementing a Durable Idempotent Operation",
+      "page": "site/lab/l10-idempotency.html",
+      "java": "java/src/main/java/labs/idempotency",
+      "go": "go/idempotency"
+    },
+    {
+      "id": "L11",
+      "slug": "outbox",
+      "title": "Implementing an Outbox and Idempotent Consumer",
+      "page": "site/lab/l11-outbox.html",
+      "java": "java/src/main/java/labs/outbox",
+      "go": "go/outbox"
+    },
+    {
+      "id": "L12",
+      "slug": "dag",
+      "title": "Implementing a Dependency Task Executor",
+      "page": "site/lab/l12-dag.html",
+      "java": "java/src/main/java/labs/dag",
+      "go": "go/dag"
+    },
+    {
+      "id": "L13",
+      "slug": "filesystem",
+      "title": "Implementing an In-Memory File System",
+      "page": "site/lab/l13-filesystem.html",
+      "java": "java/src/main/java/labs/filesystem",
+      "go": "go/filesystem"
+    },
+    {
+      "id": "L14",
+      "slug": "reservation",
+      "title": "Extending a Concurrent Reservation Component",
+      "page": "site/lab/l14-reservation.html",
+      "java": "java/src/main/java/labs/reservation",
+      "go": "go/reservation"
+    },
+    {
+      "id": "L15",
+      "slug": "pubsub",
+      "title": "Implementing a Bounded Publish-Subscribe Component",
+      "page": "site/lab/l15-pubsub.html",
+      "java": "java/src/main/java/labs/pubsub",
+      "go": "go/pubsub"
+    },
+    {
+      "id": "L16",
+      "slug": "temporalstore",
+      "title": "Implementing a Time-Indexed Key-Value Store",
+      "page": "site/lab/l16-temporalstore.html",
+      "java": "java/src/main/java/labs/temporalstore",
+      "go": "go/temporalstore"
+    },
+    {
+      "id": "L17",
+      "slug": "windowmetrics",
+      "title": "Implementing a Time-Window Event Aggregator",
+      "page": "site/lab/l17-windowmetrics.html",
+      "java": "java/src/main/java/labs/windowmetrics",
+      "go": "go/windowmetrics"
+    },
+    {
+      "id": "L18",
+      "slug": "streamio",
+      "title": "Implementing a Streaming Record Processor",
+      "page": "site/lab/l18-streamio.html",
+      "java": "java/src/main/java/labs/streamio",
+      "go": "go/streamio"
+    },
+    {
+      "id": "L19",
+      "slug": "nearby",
+      "title": "Implementing Nearby-Object Search",
+      "page": "site/lab/l19-nearby.html",
+      "java": "java/src/main/java/labs/nearby",
+      "go": "go/nearby"
+    },
+    {
+      "id": "L20",
+      "slug": "geofence",
+      "title": "Implementing a Geofencing Engine",
+      "page": "site/lab/l20-geofence.html",
+      "java": "java/src/main/java/labs/geofence",
+      "go": "go/geofence"
+    },
+    {
+      "id": "L21",
+      "slug": "routing",
+      "title": "Implementing a Route Planner",
+      "page": "site/lab/l21-routing.html",
+      "java": "java/src/main/java/labs/routing",
+      "go": "go/routing"
+    },
+    {
+      "id": "L22",
+      "slug": "trajectory",
+      "title": "Implementing a Trajectory Processor",
+      "page": "site/lab/l22-trajectory.html",
+      "java": "java/src/main/java/labs/trajectory",
+      "go": "go/trajectory"
+    }
+  ]
+}

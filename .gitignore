@@ -1,0 +1,13 @@
+# Gradle and IntelliJ
+.gradle/
+build/
+.idea/
+*.iml
+out/
+
+# Go
+*.test
+*.out
+
+# Local site preview
+_site/

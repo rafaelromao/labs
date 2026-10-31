@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="All labs" type="GoTestRunConfiguration" factoryName="Go Test">
+    <module name="go" />
+    <working_directory value="$PROJECT_DIR$" />
+    <go_parameters value="-race -count=1" />
+    <kind value="DIRECTORY" />
+    <package value="github.com/rafaelromao/labs/go" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$" />
+    <framework value="gotest" />
+    <method v="2" />
+  </configuration>
+</component>

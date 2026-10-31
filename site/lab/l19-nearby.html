@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L19 · Implementing Nearby-Object Search</title><link rel="stylesheet" href="../assets/site.css"></head>
+<body><main class="page reference-page">
+  <header class="course-bar"><strong>Backend Component Labs</strong><nav><a href="../index.html">All labs</a><a href="../index.html#workflow">Workflow</a><a href="https://github.com/rafaelromao/labs">Repository</a></nav></header>
+  <p class="eyebrow">Lab L19 · Java + Go</p><h1>Implementing nearby-object search</h1>
+  <p class="lede">Build an in-memory index of moving objects (id → latitude/longitude) that answers two questions: which objects are within R metres of a point, sorted by distance, and which <code>k</code> objects are nearest. Distances use the haversine formula on a sphere. To avoid checking every object, the index groups points into 1-degree latitude bands, and a radius query only examines bands that could possibly contain a match.</p>
+
+  <section class="lab-brief" id="task"><h2>The task</h2>
+    <p>A rider opens the app; the dispatcher needs available drivers within 2 km. Drivers report their position every few seconds, so <code>put</code> with an existing id <em>moves</em> that driver. The band filter is a cheap first pass; the exact haversine check decides. The filter must be <em>conservative</em>: it may let through points that turn out to be too far, but it must never drop one that is within the radius — the tests compare against a brute-force scan.</p>
+    <figure class="lab-figure"><svg viewBox="0 0 680 270" role="img" aria-label="Nearby search: latitude bands, candidate bands and haversine filtering" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk"/></marker><marker id="ahA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk acc"/></marker><marker id="ahB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk bad"/></marker></defs><rect x="60" y="30" width="420" height="42" class="strip"/><rect x="60" y="72" width="420" height="42" class="band"/><rect x="60" y="114" width="420" height="42" class="band"/><rect x="60" y="156" width="420" height="42" class="band"/><rect x="60" y="198" width="420" height="42" class="strip"/><text x="50" y="56" text-anchor="end" class="m">band 44</text><text x="50" y="98" text-anchor="end" class="m">band 43</text><text x="50" y="140" text-anchor="end" class="m">band 42</text><text x="50" y="182" text-anchor="end" class="m">band 41</text><text x="50" y="224" text-anchor="end" class="m">band 40</text><circle cx="270" cy="135" r="55" class="bx ring"/><circle cx="270" cy="135" r="5" class="dot acc"/><circle cx="250" cy="115" r="5" class="dot ok"/><circle cx="300" cy="150" r="5" class="dot ok"/><circle cx="285" cy="105" r="5" class="dot ok"/><circle cx="360" cy="95" r="5" class="dot dim"/><circle cx="180" cy="170" r="5" class="dot dim"/><circle cx="400" cy="150" r="5" class="dot dim"/><circle cx="150" cy="50" r="5" class="dot dim"/><circle cx="330" cy="220" r="5" class="dot dim"/><circle cx="420" cy="45" r="5" class="dot dim"/><line x1="270" y1="135" x2="325" y2="135" class="ln acc"/><text x="298" y="130" text-anchor="middle" class="acc">R</text><text x="500" y="120" text-anchor="start" class="b">candidate bands:</text><text x="500" y="138" text-anchor="start" class="m">each point checked</text><text x="500" y="154" text-anchor="start" class="m">with haversine</text><text x="500" y="52" text-anchor="start" class="b">outside lat ± Δ:</text><text x="500" y="70" text-anchor="start" class="m">never examined</text><circle cx="506" cy="196" r="5" class="dot ok"/><text x="518" y="200" text-anchor="start" class="m">within R → Hit</text><circle cx="506" cy="220" r="5" class="dot dim"/><text x="518" y="224" text-anchor="start" class="m">measured, too far</text></svg><figcaption>The search circle overlaps three latitude bands; only their points are measured with haversine. Bands entirely outside <code>lat ± Δ</code> are never examined. Grey points inside a candidate band were measured and rejected.</figcaption></figure>
+    <h3>What you implement</h3>
+    <pre class="lab-code"><code class="language-java">public final class NearbyIndex {
+    public static final double EARTH_RADIUS_METERS = 6371008.8;
+    public record Point(double latitude, double longitude) {}     // degrees
+    public record Hit(String id, double distanceMeters) {}
+
+    public void put(String id, Point p);                          // insert or move
+    public boolean delete(String id);
+    public static double distance(Point a, Point b);              // haversine, metres
+    public List&lt;Hit&gt; radius(Point center, double meters);        // distance &lt;= meters
+    public List&lt;Hit&gt; nearest(Point center, int k);
+}
+
+// haversine: d = 2R · asin( sqrt( sin²(Δφ/2) + cos φ1 · cos φ2 · sin²(Δλ/2) ) )   (φ = lat, λ = lon, radians)</code></pre>
+    <h3>Rules</h3>
+    <ul class="lab-rules"><li>Valid coordinates: finite, latitude in [−90, 90], longitude in [−180, 180] → otherwise <code>IllegalArgumentException</code>. Negative or non-finite radius, or <code>k &lt; 0</code> → <code>IllegalArgumentException</code>.</li><li><code>put</code> on an existing id moves it: it appears once, in its new band only.</li><li><code>radius</code> includes points with <code>distance &lt;= meters</code>, sorted by distance, then id.</li><li>Band of a point = <code>floor(latitude)</code>. A radius of <code>m</code> metres spans <code>m / R</code> radians of latitude; examine only bands overlapping <code>[lat − Δ, lat + Δ]</code>. Longitude is not filtered, which keeps the ±180° seam correct.</li><li><code>nearest(k)</code>: the <code>k</code> closest points (fewer if fewer exist), same ordering.</li><li>Thread-safe.</li></ul>
+    <h3>Worked example</h3>
+    <ol class="numbered"><li><code>put(d1, (0, 0))</code>, <code>put(d2, (0, 0.01))</code> ≈ 1,112 m away, <code>put(d3, (1, 0))</code> ≈ 111 km away.</li><li><code>radius((0,0), 2000)</code> → <code>[d1 · 0 m, d2 · ~1112 m]</code>. <code>nearest((0,0), 1)</code> → <code>[d1]</code>.</li><li><code>put(d2, (5, 5))</code> (moved) → <code>radius((0,0), 2000)</code> → <code>[d1]</code>.</li></ol>
+  </section>
+
+
+
+
+  <section id="files"><h2>Files and commands</h2>
+    <p>Read the tests first, then replace each <code>TODO</code> in the starter until they pass. Java starter: <a href="../source.html?file=java/src/main/java/labs/nearby/NearbyIndex.java">NearbyIndex.java</a> · tests: <a href="../source.html?file=java/src/test/java/labs/nearby/NearbyIndexTest.java">NearbyIndexTest.java</a>. Go starter: <a href="../source.html?file=go/nearby/index.go">index.go</a> · tests: <a href="../source.html?file=go/nearby/index_test.go">index_test.go</a>, <a href="../source.html?file=go/nearby/model_test.go">model_test.go</a>.</p>
+    <pre class="lab-code"><code class="language-bash"><span class="hljs-built_in">cd</span> java
+<span class="hljs-built_in">./gradlew</span> test <span class="hljs-literal">--tests</span> 'labs.nearby.*'
+
+<span class="hljs-built_in">cd</span> go
+<span class="hljs-built_in">go</span> test <span class="hljs-literal">-race</span> <span class="hljs-literal">-count=1</span> ./nearby</code></pre>
+    <details><summary>Reveal the reference solutions</summary><p>Java: <a href="../source.html?file=solutions/java/src/main/java/labs/nearby/NearbyIndex.java">NearbyIndex.java</a><br>Go: <a href="../source.html?file=solutions/go/nearby/index.go">index.go</a></p></details>
+  </section>
+
+  <section><h2>When to use</h2>
+    <p>Use this lab as a complete-search reference for a modest in-memory collection of moving locations. Each string identity has one position; inserting the same identity moves it atomically. Coordinates are latitude followed by longitude, both in degrees, with latitude between minus ninety and ninety and longitude between minus one hundred eighty and one hundred eighty. Reject nonfinite coordinates.</p>
+    <p>The distance model is a sphere with radius 6,371,008.8 metres. This is an explicit approximation, not an ellipsoidal geodesic or a projected planar distance. Do not use its output for precision surveying or claim that a spherical radius reproduces a database's ellipsoidal distance semantics. Results are sorted by distance, then identity for exactly equal computed distances.</p>
+  </section>
+  <section><h2>Steps</h2>
+    <ol class="numbered"><li><strong>Prove complete candidates.</strong> Group points by one-degree latitude band. Great-circle angular distance bounds absolute latitude difference, so the radius yields a conservative latitude interval. Expand that interval outward for numerical roundoff, visit every occupied intersecting band, and refine with spherical distance. No longitude filter means antimeridian and polar queries cannot lose candidates through longitude wrapping. Tests compare random moves/deletes/queries against an independent exhaustive map.</li><li><strong>Compute geographic distance.</strong> Use the haversine expression, with angles converted to radians. Clamp the intermediate value into zero through one before the inverse trigonometric step to avoid NaN near antipodal points from floating-point roundoff. Longitude differences naturally cross the antimeridian through the periodic trigonometric formula.</li><li><strong>Define query boundaries.</strong> Radius queries include points whose computed distance is less than or equal to a nonnegative finite radius. Nearest-K accepts zero, rejects negative K, and returns all objects if K exceeds the collection size. Its exhaustive scan avoids an unproved nearest-neighbor termination rule.</li><li><strong>Choose consistency.</strong> Hold a read lock or monitor for the entire query and an exclusive lock for updates. Each query observes one consistent collection state. Coordinates are immutable values; callers cannot modify the stored location behind the index. Long scans hold the lock and delay writers.</li><li><strong>Test geographic boundaries.</strong> Put points on both sides of the antimeridian and query from longitude one hundred eighty. Move a far object to the centre, verify nearest-K, delete it, and test a repeated deletion. Verify equal-position ties, zero radius, invalid latitude, and an antipodal distance.</li><li><strong>State costs and extensions.</strong> Updates remove old band membership and add new membership under the query lock. Queries examine occupied bands and c candidate points, then sort m matches in O(m log m). Worst case remains a full scan; nearest-K deliberately considers every point. The paired <code>spatial</code> packages also demonstrate depth-limited planar quadtrees, and <code>cells</code> demonstrates pinned H3/S2 round trips. Their coordinate and coverage contracts are separate from spherical radius search.</li></ol>
+  </section>
+  <section><h2>Checklist</h2>
+    <h3>Recall and variation</h3>
+    <figure><img src="../assets/img/candidates.svg" alt="Latitude-band candidates include both sides of the antimeridian" loading="lazy"><figcaption>Latitude-band candidates include both sides of the antimeridian</figcaption></figure>
+    <p>Rebuild band-cover enumeration before reading Go or <a href="../source.html?file=solutions/java/src/main/java/labs/nearby/NearbyIndex.java">Java</a>. Variation: query points just across longitude 180 at high latitude. Acceptance: indexed radius answers match a complete scan under the same sphere, and moving a point never leaves stale membership.</p>
+    <ul class="checks"><li>Coordinate order, units, and spherical model are explicit</li><li>Candidate generation cannot miss valid results under that model</li><li>Move and delete update the same protected state used by queries</li><li>Radius boundary and nearest-K tie behavior are defined</li><li>Exact computed equality is not confused with tolerance-based geographic equivalence</li></ul>
+  </section>
+  <section><h2>Signals</h2>
+    <p><strong>Working:</strong> antimeridian queries find points on both sides and indexed extensions can be compared against the exhaustive reference.</p>
+    <p><strong>Going wrong:</strong> latitude/longitude are swapped, a planar degree difference is called metres, or a faster cell filter excludes objects without a completeness argument. Mathematically coincident polar or wrapped-longitude representations may yield tiny floating-point discrepancies; use an explicit tolerance policy if that matters to the product.</p>
+  </section>
+  <section><h2>Related</h2>
+    <ul><li><a href="l21-routing.html">Implementing a Route Planner</a>, because route cost and straight-line geographic distance are different quantities.</li></ul>
+  </section>
+  <p class="lab-nav"><a href="l18-streamio.html">← L18 a Streaming Record Processor</a><a href="l20-geofence.html">L20 a Geofencing Engine →</a></p>
+</main><script src="../assets/vendor/highlight-11.12.0.min.js"></script><script src="../assets/lab-code.js"></script></body></html>

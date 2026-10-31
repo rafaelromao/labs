@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+    environment:
+      POSTGRES_USER: depth
+      POSTGRES_PASSWORD: depth-local-only
+      POSTGRES_DB: depth
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U depth -d depth"]
+      interval: 2s
+      timeout: 2s
+      retries: 30

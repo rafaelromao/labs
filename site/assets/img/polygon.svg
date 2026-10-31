@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" role="img" aria-labelledby="title desc">
+  <title id="title">Polygon shell, hole, and included boundaries</title>
+  <desc id="desc">An exterior square from zero to ten contains a hole from three to seven. Shell and hole boundaries are covered, but hole interiors are outside.</desc>
+  <rect width="600" height="360" fill="#ffffff"/>
+  <path d="M60 300H340V20H60ZM144 216H256V104H144Z" fill="#d4e8f2" fill-rule="evenodd" stroke="#173c53" stroke-width="3"/>
+  <g fill="#173c53" font-family="sans-serif" font-size="16"><text x="65" y="325">(0,0)</text><text x="285" y="18">(10,10)</text><text x="170" y="165">Hole</text><text x="370" y="70">Covers semantics</text><text x="370" y="115">Shell edge: included</text><text x="370" y="155">Hole edge: included</text><text x="370" y="195">Hole interior: outside</text><text x="370" y="250">Planar integer grid</text><text x="370" y="275">Not longitude/latitude</text></g>
+  <circle cx="60" cy="160" r="6" fill="#08633e"/><circle cx="144" cy="160" r="6" fill="#08633e"/><circle cx="200" cy="190" r="6" fill="#a12424"/>
+</svg>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L16 · Implementing a Time-Indexed Key-Value Store</title><link rel="stylesheet" href="../assets/site.css"></head>
+<body><main class="page reference-page">
+  <header class="course-bar"><strong>Backend Component Labs</strong><nav><a href="../index.html">All labs</a><a href="../index.html#workflow">Workflow</a><a href="https://github.com/rafaelromao/labs">Repository</a></nav></header>
+  <p class="eyebrow">Lab L16 · Java + Go</p><h1>Implementing a time-indexed key-value store</h1>
+  <p class="lede">Build a versioned key-value store. <code>put(key, timestamp, value)</code> records what a key's value was from a given time, and <code>get(key, at)</code> answers “what was the value as of time <code>at</code>?” — the value with the greatest timestamp that is <code>&lt;= at</code>. Writes may arrive in any time order.</p>
+
+  <section class="lab-brief" id="task"><h2>The task</h2>
+    <p>Each city zone has a surge multiplier that changes over time. To audit a trip priced at 18:04, you need the multiplier that was in effect at 18:04, not the current one. Updates can reach the store late or out of order. The natural structure is one sorted map per key and a floor lookup (Java's <code>TreeMap.floorEntry</code>), giving O(log n) reads and writes.</p>
+    <figure class="lab-figure"><svg viewBox="0 0 680 220" role="img" aria-label="Temporal store as a step function with floor queries" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk"/></marker><marker id="ahA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk acc"/></marker><marker id="ahB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk bad"/></marker></defs><text x="20" y="24" text-anchor="start" class="m">history of key z (puts arrived 10, 30, 20)</text><rect x="115" y="60" width="55" height="30" class="bar"/><text x="142" y="80" text-anchor="middle" class="b">1.0</text><rect x="170" y="60" width="55" height="30" class="bar"/><text x="197" y="80" text-anchor="middle" class="b">1.4</text><rect x="225" y="60" width="410" height="30" class="bar"/><text x="430" y="80" text-anchor="middle" class="b">1.8</text><line x1="60" y1="120" x2="650" y2="120" class="ln mut"/><circle cx="115.0" cy="120" r="5" class="dot acc"/><circle cx="170.0" cy="120" r="5" class="dot acc"/><circle cx="225.0" cy="120" r="5" class="dot acc"/><text x="115.0" y="140" text-anchor="middle" class="m">10</text><text x="170.0" y="140" text-anchor="middle" class="m">20</text><text x="225.0" y="140" text-anchor="middle" class="m">30</text><line x1="87" y1="190" x2="87" y2="128" class="ln bad" marker-end="url(#ahB)"/><text x="87" y="206" text-anchor="middle" class="bad">get(z,5) → empty</text><line x1="197" y1="190" x2="197" y2="96" class="ln acc" marker-end="url(#ahA)"/><text x="197" y="206" text-anchor="middle" class="acc">get(z,25) → 1.4</text><line x1="604" y1="190" x2="604" y2="96" class="ln acc" marker-end="url(#ahA)"/><text x="590" y="206" text-anchor="middle" class="acc">get(z,99) → 1.8</text></svg><figcaption>Each write starts a value that holds until the next timestamp. A query reads that step function at its own time: the nearest write at or to the left of it wins.</figcaption></figure>
+    <h3>What you implement</h3>
+    <pre class="lab-code"><code class="language-java">public final class TemporalStore&lt;K, V&gt; {
+    public void put(K key, long timestamp, V value);   // same timestamp -&gt; replace
+    public Optional&lt;V&gt; get(K key, long at);            // value at greatest timestamp &lt;= at
+}</code></pre>
+    <h3>Rules</h3>
+    <ul class="lab-rules"><li><code>get</code> returns the value whose timestamp is the greatest one <code>&lt;= at</code>.</li><li>Unknown key, or <code>at</code> earlier than the key's first timestamp → empty.</li><li>Puts may arrive out of order; ordering is by timestamp, not arrival.</li><li>A put at an existing timestamp replaces that value.</li><li>Timestamps are signed longs in caller-chosen units; negative values are valid.</li><li>Null key or value → <code>NullPointerException</code>. Thread-safe.</li></ul>
+    <h3>Worked example</h3>
+    <ol class="numbered"><li><code>put(z, 10, 1.0)</code>, <code>put(z, 30, 1.8)</code>, <code>put(z, 20, 1.4)</code> (out of order).</li><li><code>get(z, 5)</code> → empty. <code>get(z, 10)</code> → 1.0. <code>get(z, 25)</code> → 1.4. <code>get(z, 99)</code> → 1.8.</li><li><code>put(z, 20, 1.5)</code> → <code>get(z, 25)</code> → 1.5.</li></ol>
+  </section>
+
+
+
+
+  <section id="files"><h2>Files and commands</h2>
+    <p>Read the tests first, then replace each <code>TODO</code> in the starter until they pass. Java starter: <a href="../source.html?file=java/src/main/java/labs/temporalstore/TemporalStore.java">TemporalStore.java</a> · tests: <a href="../source.html?file=java/src/test/java/labs/temporalstore/TemporalStoreTest.java">TemporalStoreTest.java</a>. Go starter: <a href="../source.html?file=go/temporalstore/store.go">store.go</a> · tests: <a href="../source.html?file=go/temporalstore/store_test.go">store_test.go</a>.</p>
+    <pre class="lab-code"><code class="language-bash"><span class="hljs-built_in">cd</span> java
+<span class="hljs-built_in">./gradlew</span> test <span class="hljs-literal">--tests</span> 'labs.temporalstore.*'
+
+<span class="hljs-built_in">cd</span> go
+<span class="hljs-built_in">go</span> test <span class="hljs-literal">-race</span> <span class="hljs-literal">-count=1</span> ./temporalstore</code></pre>
+    <details><summary>Reveal the reference solutions</summary><p>Java: <a href="../source.html?file=solutions/java/src/main/java/labs/temporalstore/TemporalStore.java">TemporalStore.java</a><br>Go: <a href="../source.html?file=solutions/go/temporalstore/store.go">store.go</a></p></details>
+  </section>
+
+  <section><h2>When to use</h2>
+    <p>Use this lab for a local, in-memory history that answers: what was the latest recorded value at or before this timestamp? A timestamp is a signed integer in a unit selected consistently by the caller, not an automatically synchronized wall clock. Each key has an ordered history. Writes may arrive out of order; a write at an existing timestamp replaces its value. Missing keys and times before the first record return a miss.</p>
+    <p>This is not a durable database, a distributed ordering service, or a bounded history. There is no retention, deletion, snapshot isolation across operations, or deep copy of values. The caller owns mutable values and must establish a memory limit or retention policy before adopting this design for unbounded traffic.</p>
+  </section>
+  <section><h2>Steps</h2>
+    <ol class="numbered"><li><strong>Specify the boundary.</strong> A query at exactly a stored timestamp includes that record. If versions exist at ten and twenty, a query at nineteen returns the value at ten; a query at twenty returns the value at twenty.</li><li><strong>Choose a representation.</strong> Java maps keys to ordered trees and uses a floor-entry lookup. Go maps keys to sorted slices, uses binary search to find the first timestamp greater than the query, and returns its predecessor. The insertion search finds the first timestamp greater than or equal to the new timestamp.</li><li><strong>Handle replacement and disorder.</strong> Replace an equal timestamp rather than inserting a duplicate. Otherwise insert at the search position, shifting later Go slice elements. Test an older insertion after a newer insertion, followed by replacement at the same timestamp.</li><li><strong>Protect the state.</strong> Each operation holds a lock for its complete search and update. The implementations are safe for concurrent operations, but the locks do not protect caller-owned objects. Java rejects null keys and values. Go permits nil where the types permit it, uses a Boolean to distinguish misses from zero values, and rejects keys that are dynamically uncomparable or not equal to themselves.</li><li><strong>State complexity and growth.</strong> For a history of n values, Java tree lookup and insertion are O(log n); Go lookup is O(log n), but insertion is O(n) in the worst case due to shifting. These ignore key-hashing cost and contention. Memory grows with the number of distinct key and timestamp pairs.</li><li><strong>Test independently.</strong> Cover missing keys, before-first, exact boundaries, between versions, after-last, replacement, negative timestamps and out-of-order writes. A useful extension generates random operations and compares results to a simple linear-scan model. Concurrency tests are evidence for exercised schedules, not a proof of all possible histories.</li></ol>
+  </section>
+  <section><h2>Checklist</h2>
+    <h3>Recall and variation</h3>
+    <p>Rebuild predecessor search before reading Go or <a href="../source.html?file=solutions/java/src/main/java/labs/temporalstore/TemporalStore.java">Java</a>. Variation: replace a duplicate timestamp after inserting a later timestamp. Acceptance: exact-time and between-time queries return the specified replacement without changing the later value.</p>
+    <ul class="checks"><li>Queries include a version exactly at the requested time</li><li>Out-of-order writes preserve ordering and duplicate timestamps replace</li><li>Missing and zero-valued results are distinguishable</li><li>History growth, value ownership, and lack of durability are explicit</li><li>The unit and interpretation of timestamps belong to the caller</li></ul>
+  </section>
+  <section><h2>Signals</h2>
+    <p><strong>Working:</strong> boundary tests select the expected predecessor, and repeated writes at one timestamp return the replacement.</p>
+    <p><strong>Going wrong:</strong> a query before the first entry returns that future entry, an older write breaks sorting, or an unbounded history is described as a bounded cache.</p>
+  </section>
+  <section><h2>Related</h2>
+    <ul><li><a href="l05-ttlcache.html">Implementing a Bounded TTL Cache</a>, because a single expiring value solves a different problem from historical lookup.</li></ul>
+  </section>
+  <p class="lab-nav"><a href="l15-pubsub.html">← L15 a Bounded Publish-Subscribe Component</a><a href="l17-windowmetrics.html">L17 a Time-Window Event Aggregator →</a></p>
+</main><script src="../assets/vendor/highlight-11.12.0.min.js"></script><script src="../assets/lab-code.js"></script></body></html>

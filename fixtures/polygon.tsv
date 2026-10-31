@@ -1,0 +1,7 @@
+# x y covered; shell [0,0]-[10,10], hole [3,3]-[7,7], closed boundary
+1	1	true
+5	5	false
+0	5	true
+3	5	true
+10	10	true
+11	5	false

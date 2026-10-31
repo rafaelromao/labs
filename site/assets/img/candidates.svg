@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240" role="img" aria-labelledby="title desc">
+  <title id="title">Conservative latitude bands cross the antimeridian</title>
+  <desc id="desc">A latitude strip covers both ends of the longitude display. Points just west and east of 180 degrees remain candidates despite appearing on opposite sides of the drawing.</desc>
+  <rect width="640" height="240" fill="white"/><rect x="30" y="70" width="580" height="90" fill="#d4e8f2"/>
+  <g stroke="#173c53" fill="none"><path d="M30 25V200H610V25ZM30 70H610M30 160H610"/><path d="M30 25V200M610 25V200" stroke-dasharray="5 4"/></g>
+  <g font-family="sans-serif" font-size="16" fill="#173c53"><text x="30" y="225">-180 longitude</text><text x="470" y="225">+180 longitude</text><text x="160" y="50">All longitudes in covered latitude bands</text><text x="175" y="190">Refine candidates with spherical distance</text><text x="85" y="115">West point</text><text x="420" y="115">East point</text></g>
+  <circle cx="55" cy="115" r="7" fill="#08633e"/><circle cx="585" cy="115" r="7" fill="#08633e"/>
+</svg>

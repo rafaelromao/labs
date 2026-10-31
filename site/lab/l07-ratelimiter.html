@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L07 · Implementing a Per-Client Rate Limiter</title><link rel="stylesheet" href="../assets/site.css"></head>
+<body><main class="page reference-page">
+  <header class="course-bar"><strong>Backend Component Labs</strong><nav><a href="../index.html">All labs</a><a href="../index.html#workflow">Workflow</a><a href="https://github.com/rafaelromao/labs">Repository</a></nav></header>
+  <p class="eyebrow">Lab L07 · Java + Go</p><h1>Implementing a per-client rate limiter</h1>
+  <p class="lede">Build a per-client rate limiter using token buckets. Each client has a bucket that holds up to <code>burst</code> tokens and refills continuously at <code>rate</code> tokens per second; each request spends one token or is rejected immediately (no waiting). The limiter also caps how many clients it tracks at once and forgets clients that have been idle for a configured time.</p>
+
+  <section class="lab-brief" id="task"><h2>The task</h2>
+    <p>An API gateway lets each API key make about 5 requests per second, with short bursts of up to 10. A token bucket gives exactly that: a full bucket allows a burst, and a steady refill allows the long-run rate. Tracking every key ever seen would leak memory, so buckets idle for longer than <code>idle</code> are dropped — a returning client simply starts with a full bucket again — and the total number of tracked clients is capped.</p>
+    <figure class="lab-figure"><svg viewBox="0 0 680 250" role="img" aria-label="Token bucket model and token level over time for the worked example" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk"/></marker><marker id="ahA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk acc"/></marker><marker id="ahB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk bad"/></marker></defs><text x="100" y="24" text-anchor="middle" class="acc">+ rate tokens / s</text><line x1="100" y1="30" x2="100" y2="54" class="ln acc" marker-end="url(#ahA)"/><line x1="50" y1="60" x2="50" y2="200" class="ln "/><line x1="150" y1="60" x2="150" y2="200" class="ln "/><line x1="50" y1="200" x2="150" y2="200" class="ln "/><rect x="51" y="150" width="98" height="50" class="fill acc"/><line x1="40" y1="70" x2="160" y2="70" class="ln dash mut"/><text x="172" y="74" text-anchor="start" class="m">burst</text><line x1="100" y1="200" x2="100" y2="232" class="ln " marker-end="url(#ah)"/><text x="110" y="230" text-anchor="start" class="m">allow(): −1 token or LIMITED</text><line x1="260" y1="200" x2="650" y2="200" class="ln mut"/><line x1="260" y1="40" x2="260" y2="200" class="ln mut"/><text x="250" y="64" text-anchor="end" class="m">2</text><text x="250" y="134" text-anchor="end" class="m">1</text><text x="250" y="204" text-anchor="end" class="m">0</text><line x1="260" y1="60" x2="650" y2="60" class="ln dash mut"/><line x1="260" y1="130" x2="650" y2="130" class="ln dash mut"/><text x="645" y="54" text-anchor="end" class="m">burst</text><text x="645" y="124" text-anchor="end" class="m">1 token needed</text><path d="M 280 60 L 280 200 L 370 165 L 550 95 L 550 165 L 640 130" class="ln acc"/><circle cx="280" cy="60" r="5" class="dot ok"/><circle cx="280" cy="130" r="5" class="dot ok"/><text x="296" y="188" text-anchor="middle" class="bad">✗</text><text x="370" y="186" text-anchor="middle" class="bad">✗</text><circle cx="550" cy="95" r="5" class="dot ok"/><text x="280" y="222" text-anchor="middle" class="m">0</text><text x="370" y="222" text-anchor="middle" class="m">0.5 s</text><text x="550" y="222" text-anchor="middle" class="m">1.5 s</text><text x="640" y="222" text-anchor="middle" class="m">2 s</text></svg><figcaption>Left: the bucket model. Right: tokens for client <code>x</code> in the worked example. The line climbs at <code>rate</code>, never above <code>burst</code>; a request needs at least one whole token.</figcaption></figure>
+    <h3>What you implement</h3>
+    <pre class="lab-code"><code class="language-java">public final class RateLimiter {
+    public enum Result { ALLOWED, LIMITED, CLIENT_LIMIT }
+    public RateLimiter(double rate,          // tokens per second, &gt; 0 and finite
+                       int burst,            // bucket size, &gt; 0
+                       int maxClients,       // max tracked clients, &gt; 0
+                       Duration idle,        // forget clients idle this long, &gt; 0
+                       LongSupplier now);    // monotonic nanoseconds (fake in tests)
+    public Result allow(String client);
+}</code></pre>
+    <h3>Rules</h3>
+    <ul class="lab-rules"><li>A client seen for the first time gets a full bucket (<code>burst</code> tokens).</li><li>On each call: <code>tokens = min(burst, tokens + elapsedSeconds × rate)</code>. Fractional tokens accumulate.</li><li>If <code>tokens ≥ 1</code>: spend one and return <code>ALLOWED</code>. Otherwise return <code>LIMITED</code> — nothing is queued.</li><li>Before deciding, drop every client whose last call was at least <code>idle</code> ago.</li><li>A new client when <code>maxClients</code> are already tracked → <code>CLIENT_LIMIT</code>, and no bucket is created.</li><li>Clock moving backwards → <code>IllegalStateException</code>. Invalid configuration → <code>IllegalArgumentException</code>. Thread-safe.</li></ul>
+    <h3>Worked example</h3>
+    <ol class="numbered"><li><code>rate = 1/s</code>, <code>burst = 2</code>. At t=0: <code>allow(x)</code> → ALLOWED (1 left), ALLOWED (0 left), LIMITED.</li><li>t=0.5 s: bucket refilled to 0.5 → LIMITED.</li><li>t=1.5 s: 0.5 + 1.0 = 1.5 → ALLOWED (0.5 left).</li><li>With <code>maxClients = 1</code>, <code>allow(y)</code> while <code>x</code> is still tracked → CLIENT_LIMIT.</li></ol>
+  </section>
+
+
+
+
+  <section id="files"><h2>Files and commands</h2>
+    <p>Read the tests first, then replace each <code>TODO</code> in the starter until they pass. Java starter: <a href="../source.html?file=java/src/main/java/labs/ratelimiter/RateLimiter.java">RateLimiter.java</a> · tests: <a href="../source.html?file=java/src/test/java/labs/ratelimiter/RateLimiterTest.java">RateLimiterTest.java</a>. Go starter: <a href="../source.html?file=go/ratelimiter/limiter.go">limiter.go</a> · tests: <a href="../source.html?file=go/ratelimiter/limiter_test.go">limiter_test.go</a>.</p>
+    <pre class="lab-code"><code class="language-bash"><span class="hljs-built_in">cd</span> java
+<span class="hljs-built_in">./gradlew</span> test <span class="hljs-literal">--tests</span> 'labs.ratelimiter.*'
+
+<span class="hljs-built_in">cd</span> go
+<span class="hljs-built_in">go</span> test <span class="hljs-literal">-race</span> <span class="hljs-literal">-count=1</span> ./ratelimiter</code></pre>
+    <details><summary>Reveal the reference solutions</summary><p>Java: <a href="../source.html?file=solutions/java/src/main/java/labs/ratelimiter/RateLimiter.java">RateLimiter.java</a><br>Go: <a href="../source.html?file=solutions/go/ratelimiter/limiter.go">limiter.go</a></p></details>
+  </section>
+
+  <section><h2>When to use</h2>
+    <p>Use this lab to cap admission for individual client identities in one process. A token bucket starts with a positive burst capacity, refills at a positive finite rate measured in tokens per second, and consumes one token for each admitted request. A rejected request is not queued. The retained client count also has a positive limit; a new client receives a distinct cardinality rejection if no slot is available.</p>
+    <p>This is not a global distributed quota. Multiple independent processes multiply the effective allowance unless routing or a shared coordinator establishes another guarantee. Client identities must be authenticated or otherwise trustworthy: unlimited identities defeat a per-client policy. The cardinality bound limits entries, not identifier lengths or caller-owned request memory.</p>
+  </section>
+  <section><h2>Steps</h2>
+    <ol class="numbered"><li><strong>Define the state.</strong> Each client owns a fractional token count and a last-observed time. One lock protects cleanup, refill, and admission as a compound operation. Java uses an injected monotonic nanosecond supplier; Go uses an injected time function whose normal implementation can be <code>time.Now</code>.</li><li><strong>Refill without minting excess credit.</strong> Add elapsed seconds multiplied by the rate, clamp at burst capacity, and consume one token only if at least one is available. Preserve fractional credit rather than truncating it after every request. Reject invalid rates including infinity and NaN at construction.</li><li><strong>Specify idle cleanup.</strong> Every request sweeps buckets whose last attempt was at least the configured idle duration ago. Attempts that are denied still update last activity. A recreated bucket receives a full burst. Thus idle eviction changes admission semantics: configure the idle duration deliberately, normally no shorter than the time needed to refill a burst if equivalent refill behavior matters.</li><li><strong>Bound cardinality.</strong> After sweeping, reject a new identity if the limit is still reached. Do not evict a busy client's bucket merely to admit a new identity, which would reset quotas unexpectedly. Cleanup is O(n) in retained clients and happens under the lock; benchmark before replacing it with an expiry structure.</li><li><strong>Control time in tests.</strong> At two tokens per second and burst two, two immediate requests succeed, the third fails, and advancing by half a second permits one more. Advance to the idle boundary to reclaim the old identity and admit a new one.</li><li><strong>Exercise concurrent admission.</strong> With a fixed fake clock and burst five, run a hundred requests and require exactly five successes. This tests the compound credit check and decrement without relying on sleeps. Floating-point arithmetic can still round near boundaries; choose a numerical representation appropriate to stricter accounting requirements.</li></ol>
+  </section>
+  <section><h2>Checklist</h2>
+    <h3>Recall and variation</h3>
+    <p>Rebuild fractional refill before reading Go or <a href="../source.html?file=solutions/java/src/main/java/labs/ratelimiter/RateLimiter.java">Java</a>. Variation: deny several requests between half-token clock advances. Acceptance: partial credit survives denial, the burst is never exceeded, and client cleanup follows the documented idle boundary.</p>
+    <ul class="checks"><li>Rate, burst, idle duration, and client limit are valid</li><li>Token consumption and refill share the same atomic boundary</li><li>Saturation and client-cardinality rejection are distinct outcomes</li><li>Idle reset behavior and distributed limitations are explicit</li><li>The clock does not move backwards and comparisons stay within their range</li></ul>
+  </section>
+  <section><h2>Signals</h2>
+    <p><strong>Working:</strong> fake-clock tests predict each admission and concurrent requests cannot consume the same token twice.</p>
+    <p><strong>Going wrong:</strong> every denied request loses fractional credit, idle cleanup silently resets active clients, or local limits are advertised as a fleet-wide quota.</p>
+  </section>
+  <section><h2>Related</h2>
+    <ul><li><a href="l02-workerpool.html">Implementing a Bounded Worker Pool</a>, because limiting admitted work differs from limiting executing work.</li></ul>
+  </section>
+  <p class="lab-nav"><a href="l06-lfucache.html">← L06 an LFU Cache</a><a href="l08-scheduler.html">L08 a Delayed Task Scheduler →</a></p>
+</main><script src="../assets/vendor/highlight-11.12.0.min.js"></script><script src="../assets/lab-code.js"></script></body></html>
