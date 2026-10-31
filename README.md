@@ -67,14 +67,17 @@ clock, an inclusive deadline and a concurrent schedule.
 
 ## How to work a lab
 
-1. **Read the contract and the tests.** Open the lab page and the test file. List inputs, outputs,
-   boundaries, invariants, failure behaviour and resource limits before writing code.
-2. **Implement the starter.** Replace every `TODO`. Run the lab's tests and fix what fails before
-   reading anything else.
-3. **Compare.** Open the reference in `solutions/` and explain one difference in representation or
-   synchronization, and whether your version still keeps the contract.
-4. **Change something.** Add a test for an edge case you chose, or implement the variation
-   suggested on the lab page.
+1. **Read the lab page.** Work through *The task*: the scenario, the diagram, the API you
+   implement, the rules and the worked example. Then open the lab's tests (linked under *Files and
+   commands*) to see how each rule is checked.
+2. **Implement the starter.** In IntelliJ IDEA, open the lab's stub in `java/` or `go/` and replace
+   every `TODO`, keeping the given signatures. Run the lab's tests from the gutter icon (or with
+   the commands above) until they pass. The page's *Steps* section guides you when you get stuck.
+3. **Compare.** Only after your tests pass, reveal the reference solution from the lab page (it
+   lives in `solutions/`) and explain one difference in representation or synchronization, and
+   whether your version still keeps the contract.
+4. **Recall and vary.** A few days later, do the page's *Checklist*: rebuild the core from memory,
+   implement its variation, and add a test for an edge case you chose.
 
 Tests you write yourself mostly confirm what you already believed; a supplied suite fails on the
 boundary you skipped, the tie you broke differently, or the interleaving you never imagined. That
